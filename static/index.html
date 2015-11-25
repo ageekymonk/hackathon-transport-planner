@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html ng-app="transportInsightApp">
+    <head>
+        <title>Transport Analyser</title>
+        <link href="../node_modules/openlayers/dist/ol.css" rel="stylesheet"/>
+        <link href="../node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet"/>
+        <link href="index.css" rel="stylesheet"/>
+    </head>
+    <body>
+        <div class="wrapper">
+            <div class="container">
+                <div ng-controller="busRouteController">
+                    <div class="col-lg-8" id="map"> <div id="popup"></div> </div>
+                    <div class="col-lg-4" id="busMenus"">
+                        <form name="myForm">
+                            <label for="repeatSelect"> Interchange: </label>
+                            <select name="interchangeSelect" id="interchangeSelect" ng-model="interchange" ng-change="change()">
+                                <option ng-repeat="option in interchanges" value="{{option}}">{{option}}</option>
+                            </select>
+                            <label for="repeatSelect"> Buses: </label>
+                            <select name="busSelect" id="busSelect" ng-model="bus" ng-change="onBusChange()">
+                                <option ng-repeat="option in interchangeInfo[interchange]['buses']" value="{{option}}">{{option}}</option>
+                            </select>
+                            <select name="overlaySelect" id="overlaySelect" ng-model="overlayType" ng-change="overlayChange()">
+                                <option value="employment"> Employment </option>
+                                <option value="population"> Population </option>
+                            </select>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="../node_modules/jquery/dist/jquery.js" type="text/javascript"></script>
+        <script src="../node_modules/d3/d3.min.js" type="text/javascript"></script>
+        <script src="../node_modules/angular/angular.js" type="text/javascript"></script>
+        <script src="../node_modules/openlayers/dist/ol.js" type="text/javascript"></script>
+        <script>
+         window.jQuery = require("jquery");
+         $ = require('jquery')
+         require('coffee-script').register();
+         require('../src/app/boot');
+        </script>
+        <script src="../node_modules/bootstrap/dist/js/bootstrap.min.js" type="text/javascript"></script>
+    </body>
+</html>
