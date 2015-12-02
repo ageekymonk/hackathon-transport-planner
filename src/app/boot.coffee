@@ -1,99 +1,114 @@
 d3 = require('d3')
+turf = require('turf')
 
 hex_to_rgba = (h,o) =>
   value = parseInt(h.slice(1),16);
   [(value >> 16) & 255, (value >> 8) & 255, (value) & 255, o]
 
-transportInsightApp = angular.module('transportInsightApp', [])
+transportInsightApp = angular.module('transportPlannerApp', [])
 
-transportInsightApp.service("busExchangeService", ($http, $q) =>
-  @getBusExchangeList = () =>
+require('./shared/services/busExchangeService.coffee')
+require('./shared/services/busInfoService.coffee')
+require('./shared/services/employmentForecastService.coffee')
 
-    deferBusExchange = $q.defer()
-    $http.get('../data/interchangeInfo.json').success( (data) =>
-      deferBusExchange.resolve(data)
-    )
-    deferBusExchange.promise
-
-  this
-)
-
-transportInsightApp.service("busInfoService", ($http, $q) =>
-  @getBusInfo = (busName) =>
-
-    deferBusInfo = $q.defer()
-    $http.get('../data/buses/'+busName+'.json').success( (data) =>
-      deferBusInfo.resolve(data)
-    )
-    deferBusInfo.promise
-
-  this
-)
-
-transportInsightApp.service("employmentForecastService", ($http, $q) =>
-  @getEmploymentForecast = () =>
-    deferEmploymentForecast = $q.defer()
-    $http.get('../data/emp_population.json').success( (data) =>
-      deferEmploymentForecast.resolve(data)
-    )
-
-    deferEmploymentForecast.promise
-
-  this
-)
+BusExchange = require('./shared/libs/busExchange.coffee')
+BusExchangeMap = require('./shared/libs/busExchangeMap.coffee')
+Bus = require('./shared/libs/bus.coffee')
 
 transportInsightApp.controller('busRouteController', ($scope, $http, busExchangeService, employmentForecastService, busInfoService) =>
 
-    # Create a map and plot the cooordinates of parramatta
-  $scope.map = new ol.Map({
-    target: 'map'
-    layers: [
-      new ol.layer.Tile({source: new ol.source.OSM })
-    ]
-    view: new ol.View({
-      center: ol.proj.transform([151.0032968,-33.8176967], 'EPSG:4326', 'EPSG:3857')
-      zoom: 14
-    })
-  })
+  # Initialize all variables
+  $scope.busInfo = {}
+  $scope.tripDate = moment("2015-12-01")
+  $scope.fromTime = "07:00:00"
+  $scope.toTime = "10:00:00"
+  $scope.datePickerStatus = { opened : false }
+  $scope.busRouteInfo = {}
+  $scope.direction = "1"
+  $scope.selBuses = []
+
+  # Set all ui
+  $scope.setDirection = (dirval) ->
+    $('.ui.buttons').find('.button.positive').removeClass('positive').siblings().addClass('positive')
+    $scope.direction = String(dirval)
+
+  $scope.datePickerOpen = (event) =>
+    $scope.datePickerStatus.opened = true
+
+  $('.ui.dropdown').dropdown()
+  #$('.ui.modal').modal('show')
+  $("#buses_dropdown").dropdown(
+    onRemove: (removedValue, removedText, $removedChoice) =>
+      $scope.selBuses = $scope.selBuses.filter (elem) => elem isnt removedValue
+      $scope.busExchangeMap.removeBusRoute(removedValue)
+      $scope.$apply()
+  )
+
+  $('.ui.accordion').accordion()
+  $('.menu .item').tab()
+
+  $('#triptime').daterangepicker({
+    timePicker: true,
+    timePicker12Hour: false,
+    timePickerIncrement: 1,
+    startDate: '2015-12-01 07:00:00',
+    endDate: '2015-12-01 10:00:00',
+    autoUpdateInput: true,
+    format: 'YYYY-MM-DD HH:mm:ss'
+    }, (start, end, label) ->
+      $scope.tripDate = start
+      $scope.fromTime = start.format('HH:mm:ss')
+      $scope.toTime = end.format('HH:mm:ss')
+      console.log(start, end, label);
+      $scope.$apply()
+  )
+
+  # Handle Interchange Selection
+  $scope.onInterchangeChange = (ichange) =>
+    $scope.interchange = ichange
+    $scope.busExchangeMap.moveToInterchange($scope.interchange)
+
+  # On Bus Selection
+  $scope.onBusSelect = (busName) =>
+    # $scope.removeOverlay "busRoute"
+    $scope.selBuses.push busName
+
+  $scope.$watchGroup(['selBuses.length', 'tripDate', 'fromTime', 'toTime', 'direction'], (newValues, oldValues, scope) ->
+    console.log(newValues)
+    if "All" in $scope.selBuses
+      $scope.selBuses = $scope.busExchange.getBuses($scope.interchange)
+
+    for bus in $scope.selBuses
+      if not $scope.busInfo[bus]?
+        $scope.busRouteInfo[bus] = {}
+        busInfoService.getBusInfo(bus).then((data) =>
+          $scope.busInfo[bus] = new Bus(bus, data)
+          if newValues.every((element) -> element?)
+            $scope.busRouteInfo[bus].trips = $scope.busInfo[bus].getTrips(newValues[1].day(), newValues[2], newValues[3], newValues[4])
+            $scope.busRouteInfo[bus].tripStats = $scope.busInfo[bus].getTripStats(newValues[1].day(), newValues[2], newValues[3], newValues[4])
+            console.log $scope.busRouteInfo[bus].tripStats
+            $scope.busExchangeMap.displayBusRoute(bus, $scope.busRouteInfo[bus].trips[0].stops)
+        )
+      else
+        if newValues.every((element) -> element?)
+          $scope.busRouteInfo[bus].trips = $scope.busInfo[bus].getTrips(newValues[1].day(), newValues[2], newValues[3], newValues[4])
+          $scope.busRouteInfo[bus].tripStats = $scope.busInfo[bus].getTripStats(newValues[1].day(), newValues[2], newValues[3], newValues[4])
+          $scope.busExchangeMap.displayBusRoute(bus, $scope.busRouteInfo[bus].trips[0].stops)
+
+  )
+
+  # Create a map and plot the cooordinates of parramatta
+  busExchangeService.getBusExchanges().then( (data) =>
+    $scope.busExchange = new BusExchange(data)
+    $scope.busExchangeMap = new BusExchangeMap($scope.busExchange)
+    $scope.map = $scope.busExchangeMap.initMap(null)
+    $scope.interchanges = $scope.busExchange.getInterchangeNames()
+    $scope.busExchangeMap.markInterchanges()
+  )
+
 
   employmentForecastService.getEmploymentForecast().then((data) =>
     $scope.employment_population_data = data
-  )
-
-  busExchangeService.getBusExchangeList().then((d) =>
-    $scope.interchangeInfo = d
-    $scope.interchanges = Object.keys(d)
-
-    exchangeFeatures = []
-
-    iconStyle = new ol.style.Style({
-      image: new ol.style.Icon(({
-        anchor: [0.5, 46],
-        anchorXUnits: 'fraction',
-        anchorYUnits: 'pixels',
-        opacity: 0.75,
-        src: '../images/marker.png'
-      }))
-    })
-
-    for interchange in $scope.interchanges
-
-      temp = new ol.Feature({
-        geometry: new ol.geom.Point(ol.proj.transform([parseFloat(d[interchange]['stops'][0]['long']), parseFloat(d[interchange]['stops'][0]['lat'])], 'EPSG:4326', 'EPSG:3857')),
-        name: interchange,
-      })
-      temp.setStyle(iconStyle)
-      exchangeFeatures.push temp
-
-    exchangeSource = new ol.source.Vector({
-      features: exchangeFeatures
-    })
-
-    exchangeLayer = new ol.layer.Vector({
-      source: exchangeSource
-    })
-
-    $scope.map.addLayer(exchangeLayer)
   )
 
   $scope.draw_employment_projection = () =>
@@ -233,9 +248,6 @@ transportInsightApp.controller('busRouteController', ($scope, $http, busExchange
 
     $scope.map.addLayer(busRouteLayer)
 
-  $scope.change = () =>
-    console.log($scope.interchange)
-    console.log($scope.map.getLayers())
 
   # Remove any layer with name
   $scope.removeOverlay = (name) =>
@@ -244,16 +256,6 @@ transportInsightApp.controller('busRouteController', ($scope, $http, busExchange
       if layer.get("title") ==  name
         $scope.map.removeLayer(layer)
 
-  # On Bus Change
-  $scope.onBusChange = () =>
-    $scope.removeOverlay "busRoute"
-
-    busInfoService.getBusInfo($scope.bus).then((data) =>
-      $scope.bus_info_data = data
-      $scope.draw_bus_route()
-    )
-    #$("#busMenus").append($scope.bus)
-    console.log($scope.bus)
 
   $scope.overlayChange = () =>
     console.log $scope.overlayType
@@ -264,4 +266,6 @@ transportInsightApp.controller('busRouteController', ($scope, $http, busExchange
     else
       $scope.removeOverlay "tz_layer_with_employment"
       $scope.draw_population_projection()
+
+
 )
