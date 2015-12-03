@@ -1,4 +1,4 @@
-angular.module('transportPlannerApp').service("busExchangeService", ($http, $q) =>
+angular.module('app').service("busExchangeService", ($http, $q) =>
 
   @cachedData = null
   @getBusExchanges = () =>

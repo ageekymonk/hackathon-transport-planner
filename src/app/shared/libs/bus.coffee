@@ -1,9 +1,7 @@
-_ = require('underscore')
-
 module.exports = class Bus
   constructor: (name, busData) ->
-    @busData = busData
     @name = name
+    @busData = busData
 
   getName: () ->
     @name

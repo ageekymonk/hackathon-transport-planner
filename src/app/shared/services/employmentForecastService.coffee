@@ -1,4 +1,4 @@
-angular.module('transportPlannerApp').service("employmentForecastService", ($http, $q) =>
+angular.module('app').service("employmentForecastService", ($http, $q) =>
   @getEmploymentForecast = () =>
     deferEmploymentForecast = $q.defer()
     $http.get('../data/emp_population.json').success( (data) =>

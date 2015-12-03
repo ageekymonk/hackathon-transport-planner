@@ -1,0 +1,172 @@
+<div class="ui basic segment grid">
+  <div class="sixteen column row">
+    <div class="ten wide column">
+      <div class="ui grid row">
+        <div class="four wide column">
+        <h3 class="ui header">Interchange</h3>
+        <div class="ui fluid selection dropdown">
+        <i class="dropdown icon"></i>
+        <div class="default text"><b>Interchange</b></div>
+        <div class="menu">
+        <div class="item" ng-repeat="ichange in interchanges" ng-click="onInterchangeChange(ichange)">{{ichange}}</div>
+            </div>
+          </div>
+        </div>
+        <div class="four wide column">
+
+        <div class="ui">
+        <h3 class="ui header">Date and Time </h3>
+
+        <div class="ui left icon input">
+        <input type="text" name="reservation"
+                     id="triptime"
+                     value="2015-12-01 07:00:00 - 2015-12-01 10:00:00"/>
+        <i class="calendar icon"></i>
+            </div>
+
+          </div>
+        </div>
+        <div class="four wide column">
+        <h3 class="ui header">Direction</h3>
+
+        <div class="ui buttons">
+        <button class="ui button positive" ng-click="setDirection(1)">Inbound</button>
+        <div class="or"></div>
+        <button class="ui button" ng-click="setDirection(0)">Outbound</button>
+          </div>
+        </div>
+        <div class="four wide column">
+        <h3 class="ui header">Buses</h3>
+        <div class="ui fluid multiple normal selection dropdown" id="buses_dropdown">
+        <i class="dropdown icon"></i>
+        <div class="default text"><b>Buses</b></div>
+        <div class="menu">
+        <div class="item" ng-click="onBusSelect('All')"> All </div>
+        <div class="item" ng-repeat="busOption in busExchange.getBuses(interchange)" ng-click="onBusSelect(busOption)">{{busOption}}</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="ui grid row">
+        <div class="column" id="map" style="width:100%; position:absolute; z-index: 0">
+
+          <!-- <div id="overlay" style="position:absolute;z-index:9999">
+               HELLo
+               </div> -->
+          <div id="popup"></div>
+        </div>
+
+      </div>
+    </div>
+    <div class="four wide column">
+      <div class="ui top attached tabular menu">
+        <a class="item" data-tab="route-properties">Properties</a>
+        <a class="item" data-tab="route_details">Route Info</a>
+        <a class="item" data-tab="trip_details">Trip Info</a>
+      </div>
+      <div class="ui bottom attached tab segment" data-tab="route-properties">
+
+        <div class="ui grid row">
+
+          <div class="ui green horizontal label">Distance around Bus stop</div>
+          <div class="ui right labeled input">
+            <input type="text" ng-model="coverage_distance" placeholder="Enter coverage Per Stop..">
+            <div class="ui basic label">
+              meters
+            </div>
+          </div>
+
+        </div>
+        <div class="ui grid row">
+
+          <div class="ui green horizontal label">Avg Wait Time should be less than</div>
+
+          <div class="ui right labeled input">
+            <input type="text" ng-model="average_wait_time" placeholder="Avg Wait Time">
+            <div class="ui basic label">
+              minutes
+            </div>
+          </div>
+        </div>
+        <div class="ui grid row">
+
+          <div class="ui green horizontal label">Total Travel time should be less than</div>
+
+          <div class="ui right labeled input">
+            <input type="text" placeholder="Total Travel Time">
+            <div class="ui basic label">
+              minutes
+            </div>
+          </div>
+
+        </div>
+        <div class="ui grid row">
+
+          <div class="ui green horizontal label">Car to Bus travel time should be less than</div>
+
+          <div class="ui right labeled input">
+            <input type="text" placeholder="Car to Bus difference">
+            <div class="ui basic label">
+              minutes
+            </div>
+          </div>
+        </div>
+
+        <div class="ui grid row">
+          <button class="positive ui button" ng-click="recalculate()">Recalculate</button>
+        </div>
+
+      </div>
+      <div class="ui bottom attached tab segment" data-tab="route_details">
+        <div class="ui accordion">
+        <div class="title" ng-repeat-start="busOption in selBuses">
+        <i class="dropdown icon"></i>
+        {{busOption}}
+          </div>
+        <div class="content" ng-repeat-end>
+        <div class="ui mini statistic" ng-repeat="(statName,statValue) in busRouteInfo[busOption].tripStats">
+        <div class="value">
+        {{statValue}}
+              </div>
+        <div class="label" ng-click="$('.ui.modal').modal('show')">
+        {{statName}}
+              </div>
+            </div>
+        <div class="ui modal">
+        <i class="close icon"></i>
+        <div class="header">
+        Profile Picture
+              </div>
+        <div class="image content">
+        <div class="ui medium image">
+        <img src="/images/avatar/large/chris.jpg">
+                </div>
+        <div class="description">
+        <div class="ui header">We've auto-chosen a profile image for you.</div>
+        <p>We've grabbed the following image from the <a href="https://www.gravatar.com" target="_blank">gravatar</a> image associated with your registered e-mail address.</p>
+        <p>Is it okay to use this photo?</p>
+                </div>
+              </div>
+        <div class="actions">
+        <div class="ui black deny button">
+        Nope
+                </div>
+        <div class="ui positive right labeled icon button">
+        Yep, that's me
+        <i class="checkmark icon"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+      </div>
+      <div class="ui bottom attached tab segment" data-tab="trip_details">
+        Second
+      </div>
+    </div>
+  </div>
+</div>
+</div>
