@@ -3,46 +3,46 @@
     <div class="ten wide column">
       <div class="ui grid row">
         <div class="four wide column">
-        <h3 class="ui header">Interchange</h3>
-        <div class="ui fluid selection dropdown">
-        <i class="dropdown icon"></i>
-        <div class="default text"><b>Interchange</b></div>
-        <div class="menu">
-        <div class="item" ng-repeat="ichange in interchanges" ng-click="onInterchangeChange(ichange)">{{ichange}}</div>
+          <h3 class="ui header">Interchange</h3>
+          <div class="ui fluid selection dropdown">
+          <i class="dropdown icon"></i>
+          <div class="default text"><b>Interchange</b></div>
+          <div class="menu">
+          <div class="item" ng-repeat="ichange in interchanges" ng-click="onInterchangeChange(ichange)">{{ichange}}</div>
             </div>
           </div>
         </div>
         <div class="four wide column">
 
-        <div class="ui">
-        <h3 class="ui header">Date and Time </h3>
+          <div class="ui">
+          <h3 class="ui header">Date and Time </h3>
 
-        <div class="ui left icon input">
-        <input type="text" name="reservation"
+          <div class="ui left icon input">
+          <input type="text" name="reservation"
                      id="triptime"
                      value="2015-12-01 07:00:00 - 2015-12-01 10:00:00"/>
-        <i class="calendar icon"></i>
+          <i class="calendar icon"></i>
             </div>
 
           </div>
         </div>
         <div class="four wide column">
-        <h3 class="ui header">Direction</h3>
+          <h3 class="ui header">Direction</h3>
 
-        <div class="ui buttons">
-        <button class="ui button positive" ng-click="setDirection(1)">Inbound</button>
-        <div class="or"></div>
-        <button class="ui button" ng-click="setDirection(0)">Outbound</button>
+          <div class="ui buttons">
+          <button class="ui button positive" ng-click="setDirection(1)">Inbound</button>
+          <div class="or"></div>
+          <button class="ui button" ng-click="setDirection(0)">Outbound</button>
           </div>
         </div>
         <div class="four wide column">
-        <h3 class="ui header">Buses</h3>
-        <div class="ui fluid multiple normal selection dropdown" id="buses_dropdown">
-        <i class="dropdown icon"></i>
-        <div class="default text"><b>Buses</b></div>
-        <div class="menu">
-        <div class="item" ng-click="onBusSelect('All')"> All </div>
-        <div class="item" ng-repeat="busOption in busExchange.getBuses(interchange)" ng-click="onBusSelect(busOption)">{{busOption}}</div>
+          <h3 class="ui header">Buses</h3>
+          <div class="ui fluid multiple normal selection dropdown" id="buses_dropdown">
+          <i class="dropdown icon"></i>
+          <div class="default text"><b>Buses</b></div>
+          <div class="menu">
+          <div class="item" ng-click="onBusSelect('All')"> All </div>
+          <div class="item" ng-repeat="busOption in busExchange.getBuses(interchange)" ng-click="onBusSelect(busOption)">{{busOption}}</div>
             </div>
           </div>
 
@@ -65,56 +65,102 @@
         <a class="item" data-tab="route_details">Route Info</a>
         <a class="item" data-tab="trip_details">Trip Info</a>
       </div>
-      <div class="ui bottom attached tab segment" data-tab="route-properties">
+      <div class="ui bottom attached tab segment active" data-tab="route-properties">
 
         <div class="ui grid row">
+          <div class="column">
 
           <div class="ui green horizontal label">Distance around Bus stop</div>
           <div class="ui right labeled input">
-            <input type="text" ng-model="coverage_distance" placeholder="Enter coverage Per Stop..">
-            <div class="ui basic label">
-              meters
+          <input type="text" ng-model="coverage_distance" placeholder="Enter coverage Per Stop..">
+          <div class="ui basic label">
+          meters
+              </div>
             </div>
           </div>
 
         </div>
+
         <div class="ui grid row">
+          <div class="column">
 
           <div class="ui green horizontal label">Avg Wait Time should be less than</div>
 
           <div class="ui right labeled input">
-            <input type="text" ng-model="average_wait_time" placeholder="Avg Wait Time">
-            <div class="ui basic label">
-              minutes
+          <input type="text" ng-model="average_wait_time" placeholder="Avg Wait Time">
+          <div class="ui basic label">
+          minutes
+              </div>
             </div>
           </div>
         </div>
+
         <div class="ui grid row">
+
+          <div class="column">
 
           <div class="ui green horizontal label">Total Travel time should be less than</div>
 
           <div class="ui right labeled input">
-            <input type="text" placeholder="Total Travel Time">
-            <div class="ui basic label">
-              minutes
+          <input type="text" placeholder="Total Travel Time" ng-model="total_travel_time">
+          <div class="ui basic label">
+          minutes
+              </div>
             </div>
           </div>
 
         </div>
+
         <div class="ui grid row">
+
+          <div class="column">
+
+            <div class="ui green horizontal label"> Speed should be more than </div>
+
+            <div class="ui right labeled input">
+              <input type="text" placeholder="Speed" ng-model="total_speed">
+              <div class="ui basic label">
+                km/h
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="ui grid row">
+          <div class="column">
 
           <div class="ui green horizontal label">Car to Bus travel time should be less than</div>
 
           <div class="ui right labeled input">
-            <input type="text" placeholder="Car to Bus difference">
-            <div class="ui basic label">
-              minutes
+          <input type="text" placeholder="Car to Bus difference">
+          <div class="ui basic label">
+          minutes
+              </div>
             </div>
           </div>
         </div>
 
         <div class="ui grid row">
+          <div class="column">
           <button class="positive ui button" ng-click="recalculate()">Recalculate</button>
+          </div>
+        </div>
+
+        <div class="ui grid row">
+          <div class="column">
+
+          <div class="ui selection dropdown">
+          <input type="hidden" name="overlays">
+          <i class="dropdown icon"></i>
+          <div class="default text">Overlays</div>
+          <div class="menu">
+          <div class="item" data-value="1" ng-click="draw_employment_projection()">Employment</div>
+          <div class="item" data-value="0" ng-click="draw_population_projection()">Population</div>
+          <div class="item" data-value="0">Rank</div>
+              </div>
+            </div>
+          </div>
         </div>
 
       </div>

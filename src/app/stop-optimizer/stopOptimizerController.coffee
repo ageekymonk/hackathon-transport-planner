@@ -1,4 +1,4 @@
-angular.module('app').controller('stopOptimizerController', ($scope, $http, busExchangeService, employmentForecastService, busInfoService) =>
+angular.module('app').controller('stopOptimizerController', ($scope, $http, busExchangeService, employmentForecastService, busInfoService, busUsageStatService) =>
 
   # Initialize all variables
   $scope.busInfo = {}
@@ -7,6 +7,8 @@ angular.module('app').controller('stopOptimizerController', ($scope, $http, busE
   $scope.toTime = "10:00:00"
   $scope.datePickerStatus = { opened : false }
   $scope.busRouteInfo = {}
+  $scope.busHiddenStopInfo = {}
+  $scope.busUsageInfo = {}
   $scope.direction = "1"
   $scope.selBuses = []
   $scope.coverage_distance = 500
@@ -21,7 +23,7 @@ angular.module('app').controller('stopOptimizerController', ($scope, $http, busE
     $scope.datePickerStatus.opened = true
 
   $('.ui.dropdown').dropdown()
-  #$('.ui.modal').modal('show')
+
   $("#buses_dropdown").dropdown(
     onRemove: (removedValue, removedText, $removedChoice) =>
       $scope.selBuses = $scope.selBuses.filter (elem) => elem isnt removedValue
@@ -63,23 +65,58 @@ angular.module('app').controller('stopOptimizerController', ($scope, $http, busE
     $scope.busExchangeMap.average_wait_time = $scope.average_wait_time*60
 
     if not _.some($scope.selBuses, (elem) => not $scope.busInfo[elem]?)
-      $scope.busExchangeMap.displayRouteAvailability($scope.selBuses, $scope.tripDate.day(),$scope.fromTime, $scope.toTime, $scope.direction )
+      for bus in $scope.selBuses
+        $scope.busExchangeMap.displayBusRoute(bus, $scope.busRouteInfo[bus].trips[0].stops)
+
+  # Hide stops
+  $scope.toggle_stops = (busName, stop_id) =>
+    if not $scope.busHiddenStopInfo[busName]?
+      $scope.busHiddenStopInfo[busName] = []
+    if stop_id not in $scope.busHiddenStopInfo[busName]
+      $scope.busHiddenStopInfo[busName].push stop_id
+      $('#hide_'+busName+'_'+stop_id+'_button').text('show')
+
+    else
+      $scope.busHiddenStopInfo[busName] = $scope.busHiddenStopInfo[busName].filter (elem) => elem isnt stop_id
+      $('#hide_'+busName+'_'+stop_id+'_button').text('Remove')
+
+    stops_list = _.filter($scope.busRouteInfo[busName].trips[0].stops, (x) => x.id not in $scope.busHiddenStopInfo[busName])
+    $scope.busExchangeMap.displayBusRoute(busName, stops_list)
+
+  $scope.update_stats = () =>
+    for bus in $scope.selBuses
+      $scope.busRouteInfo[bus].tripStats = $scope.busInfo[bus].getTripStats($scope.tripDate.day(), $scope.fromTime, $scope.toTime, $scope.direction)
+      $scope.busUsageInfo[bus] = $scope.busInfo[bus].getTripUsageStats($scope.busRouteInfo[bus].trips)
+
 
   $scope.$watchGroup(['selBuses.length', 'tripDate', 'fromTime', 'toTime', 'direction'], (newValues, oldValues, scope) ->
 
     for bus in _.filter($scope.selBuses, (elem) => not $scope.busInfo[elem]?)
         $scope.busRouteInfo[bus] = {}
+        $scope.busUsageInfo[bus] = {}
+
+        # Getting Info about the bus trips and stops
         busInfoService.getBusInfo(bus).then((data) =>
           $scope.busInfo[data.busName] = new Bus(data.busName, data.output)
           $scope.busExchangeMap.addBus(data.busName, $scope.busInfo[data.busName])
 
+          # Getting Info about the bus usage stats
+          busUsageStatService.getBusUsageStats(data.busName).then((d) =>
+            $scope.busInfo[d.busName].setBusUsageData(d.output)
+            console.log('Updating Stats')
+            $scope.update_stats()
+          )
+
           if newValues.every((element) -> element?)
-            $scope.busRouteInfo[data.busName].trips = $scope.busInfo[data.busName].getTrips(newValues[1].day(), newValues[2], newValues[3], newValues[4])
+            $scope.busRouteInfo[data.busName].trips = _.sortBy($scope.busInfo[data.busName].getTrips(newValues[1].day(), newValues[2], newValues[3], newValues[4]), (val) ->
+              val.start_time)
             $scope.busRouteInfo[bus].tripStats = $scope.busInfo[bus].getTripStats(newValues[1].day(), newValues[2], newValues[3], newValues[4])
             $scope.busExchangeMap.displayBusRoute(bus, $scope.busRouteInfo[bus].trips[0].stops)
-
         )
 
+    if newValues.every((element) -> element?)
+      $scope.recalculate()
+      $scope.update_stats()
   )
 
   # Create a map and plot the cooordinates of parramatta

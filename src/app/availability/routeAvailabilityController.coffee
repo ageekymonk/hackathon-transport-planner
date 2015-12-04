@@ -1,3 +1,7 @@
+hex_to_rgba = (h,o) =>
+  value = parseInt(h.slice(1),16);
+  [(value >> 16) & 255, (value >> 8) & 255, (value) & 255, o]
+
 angular.module('app').controller('routeAvailabilityController', ($scope, $http, busExchangeService, employmentForecastService, busInfoService) =>
 
   # Initialize all variables
@@ -10,7 +14,8 @@ angular.module('app').controller('routeAvailabilityController', ($scope, $http, 
   $scope.direction = "1"
   $scope.selBuses = []
   $scope.coverage_distance = 500
-  $scope.average_wait_time = null
+  $scope.average_wait_time = 15
+  $scope.total_travel_time = 60
 
   # Set all ui
   $scope.setDirection = (dirval) ->
@@ -21,7 +26,7 @@ angular.module('app').controller('routeAvailabilityController', ($scope, $http, 
     $scope.datePickerStatus.opened = true
 
   $('.ui.dropdown').dropdown()
-  #$('.ui.modal').modal('show')
+
   $("#buses_dropdown").dropdown(
     onRemove: (removedValue, removedText, $removedChoice) =>
       $scope.selBuses = $scope.selBuses.filter (elem) => elem isnt removedValue
@@ -55,10 +60,10 @@ angular.module('app').controller('routeAvailabilityController', ($scope, $http, 
 
   # On Bus Selection
   $scope.onBusSelect = (busName) =>
-    # $scope.removeOverlay "busRoute"
     $scope.selBuses.push busName
 
   $scope.$on("display_avail", () =>
+    console.log("DISPLAY AVAIL")
     if not _.some($scope.selBuses, (elem) => not $scope.busInfo[elem]?)
       $scope.busExchangeMap.displayRouteAvailability($scope.selBuses, $scope.tripDate.day(),$scope.fromTime, $scope.toTime, $scope.direction )
   )
@@ -66,6 +71,7 @@ angular.module('app').controller('routeAvailabilityController', ($scope, $http, 
   $scope.recalculate = () =>
     $scope.busExchangeMap.coverage_distance = $scope.coverage_distance
     $scope.busExchangeMap.average_wait_time = $scope.average_wait_time*60
+    $scope.busExchangeMap.total_travel_time = $scope.total_travel_time*60
 
     if not _.some($scope.selBuses, (elem) => not $scope.busInfo[elem]?)
       $scope.busExchangeMap.displayRouteAvailability($scope.selBuses, $scope.tripDate.day(),$scope.fromTime, $scope.toTime, $scope.direction )
@@ -81,14 +87,8 @@ angular.module('app').controller('routeAvailabilityController', ($scope, $http, 
           $scope.busInfo[data.busName] = new Bus(data.busName, data.output)
           $scope.busExchangeMap.addBus(data.busName, $scope.busInfo[data.busName])
 
-          if newValues.every((element) -> element?)
+          if newValues.every((element) -> element?) and not _.some($scope.selBuses, (elem) => not $scope.busInfo[elem]?)
             $scope.$emit("display_avail")
-
-            # $scope.busRouteInfo[data.busName].trips = $scope.busInfo[data.busName].getTrips(newValues[1].day(), newValues[2], newValues[3], newValues[4])
-            #$scope.busRouteInfo[bus].tripStats = $scope.busInfo[bus].getTripStats(newValues[1].day(), newValues[2], newValues[3], newValues[4])
-            # $scope.busExchangeMap.displayBusRoute(bus, $scope.busRouteInfo[bus].trips[0].stops)
-          #$scope.busExchangeMap.displayRouteAvailability(all_stops)
-
         )
 
   )

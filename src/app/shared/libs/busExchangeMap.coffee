@@ -10,7 +10,8 @@ module.exports = class BusExchangeMap
     @busExchangeInfo = busExchangeInfo
     @busInfo = {}
     @stop_coverage_distance = 500
-    @avg_wait_time = null
+    @avg_wait_time = 600000
+    @total_bus_travel_time = 600000
 
   @property 'coverage_distance',
     get: @stop_coverage_distance
@@ -19,6 +20,10 @@ module.exports = class BusExchangeMap
   @property 'average_wait_time',
     get: @avg_wait_time
     set: (t) -> @avg_wait_time = t
+
+  @property 'total_travel_time',
+    get: @total_bus_travel_time
+    set: (t) -> @total_bus_travel_time = t
 
   initMap: (map) ->
     if map == null
@@ -65,7 +70,9 @@ module.exports = class BusExchangeMap
       source: exchangeSource
     })
 
+    exchangeLayer.setZIndex(99)
     @map.addLayer(exchangeLayer)
+
 
   moveToInterchange: (ichange) ->
     [lat, lon] = @busExchangeInfo.getInterchangeFirstLatLong(ichange)
@@ -89,22 +96,23 @@ module.exports = class BusExchangeMap
 
     time_diff/(time_list.length-1)
 
+
   displayRouteAvailability: (buses, tripDay, fromTime, toTime, direction) ->
     stops = []
     for bus in buses
       trips = @busInfo[bus].getTrips(tripDay, fromTime, toTime, direction)
-      if trips.length > 1 and @avg_wait_time != null
+      if trips.length > 1
         trip_avg_wait_time = @find_average_wait_time(trips)
         if trip_avg_wait_time < @avg_wait_time
-          console.log(trips)
+          journey_start_time = moment(trips[0].stops[0].departure, 'HH:mm:ss')
+          trip_journey_time = (moment(_.last(trips[0].stops).arrival, 'HH:mm:ss') - journey_start_time)/1000
+
           for stop in trips[0].stops
-            if stop not in stops
+            travel_time_until_current_stop = (moment(stop.arrival, 'HH:mm:ss') - journey_start_time)/1000
+            travel_time = trip_journey_time - travel_time_until_current_stop
+            if stop not in stops and travel_time < parseFloat(@total_bus_travel_time)
               stops.push stop
 
-      if trips.length > 0 and @avg_wait_time == null
-        for stop in trips[0].stops
-          if stop not in stops
-            stops.push stop
 
     if stops.length == 0
       return
@@ -177,7 +185,7 @@ module.exports = class BusExchangeMap
     })
 
     #@map.addLayer(busRouteLayer)
-
+    turf_layer.setZIndex(80)
     @map.addLayer(turf_layer)
 
   displayBusRoute: (bus, stops) ->
@@ -185,14 +193,16 @@ module.exports = class BusExchangeMap
     busRouteFeatures = []
     turf_points = []
     for stop_info in stops
-      turf_points.push turf.buffer(turf.point([parseFloat(stop_info['lon']), parseFloat(stop_info['lat'])], { name: stop_info['name'] }), 500, 'meters').features[0]
+      turf_points.push turf.buffer(turf.point([parseFloat(stop_info['lon']), parseFloat(stop_info['lat'])], { name: stop_info['name'] }), @stop_coverage_distance, 'meters').features[0]
 
       temp = new ol.Feature({
-        geometry: new ol.geom.Circle(ol.proj.transform([parseFloat(stop_info['lon']), parseFloat(stop_info['lat'])], 'EPSG:4326', 'EPSG:3857'), 500),
+        geometry: new ol.geom.Circle(ol.proj.transform([parseFloat(stop_info['lon']), parseFloat(stop_info['lat'])], 'EPSG:4326', 'EPSG:3857'), @stop_coverage_distance),
         name: stop_info['name']
       })
 
       busRouteFeatures.push temp
+
+    @removeLayer(bus + "_route_coverage")
 
     busRouteSource = new ol.source.Vector({
       features: busRouteFeatures

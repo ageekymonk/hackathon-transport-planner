@@ -2,9 +2,13 @@ module.exports = class Bus
   constructor: (name, busData) ->
     @name = name
     @busData = busData
+    @busUsageData = null
 
   getName: () ->
     @name
+
+  setBusUsageData: (data) ->
+    @busUsageData = data
 
   getStops: (tripId) ->
     for trip in @busData['trips']
@@ -26,8 +30,35 @@ module.exports = class Bus
 
     sel_trips
 
+  getTripUsageData: (trips) ->
+    trip_stats = _.map(trips, (trip) =>
+      {
+        id: trip.id,
+        data:  _.filter(@busUsageData, (elem) => elem.trip_id == trip.id)
+      }
+    )
+
+    trip_stats
+
+  getNumStopUsage: (stop) ->
+    _.filter(@busUsageData, (elem) => elem.origin_stop_id == stop).length
+
+  getTripUsageStats: (trips) ->
+    trip_usage_data = @getTripUsageData(trips)
+    trip_usage_stats = {}
+
+    for trip_elem in trip_usage_data
+
+      trip_usage_stats[trip_elem.id] = { 'Users' : trip_elem.data.length,
+      'avg delay' : _.reduce(_.map(trip_elem.data, (x) -> parseInt(x.delay)), (total,v) ->
+        total + v
+      , 0)/trip_elem.data.length  }
+
+    trip_usage_stats
+
   getTripStats: (day, start, end, direction) ->
     sel_trips = @getTrips(day, start, end, direction)
+    sel_trips_usage = @getTripUsageData(sel_trips)
     sel_trips_stat = {}
     trip_duration = []
     num_stops = []
@@ -40,12 +71,12 @@ module.exports = class Bus
 
     sel_trips_stat['Min time'] = Math.min trip_duration...
     sel_trips_stat['Max time'] = Math.max trip_duration...
-    sel_trips_stat['Avg time'] = _.reduce(trip_duration, (n,m) -> n+m) / trip_duration.length
+    sel_trips_stat['Avg time'] = parseInt(_.reduce(trip_duration, (n,m) -> n+m) / trip_duration.length)
     sel_trips_stat.trips = sel_trips.length
-    # sel_trips_stat.stops = sel_trips[0].stops.length
-    # sel_trips_stat.distance =  parseInt(sel_trips[0].stops[sel_trips[0].stops.length-1].distance)
-    # sel_trips_stat['Min Stops'] = Math.min num_stops...
-    # sel_trips_stat['Max Stops'] = Math.max num_stops...
+    sel_trips_stat['Users'] = _.reduce(_.map(sel_trips_usage, (x) -> x.data.length), (res, val) ->
+      res + val
+    , 0)
+
     sel_trips_stat
 
   getTripDuration: (day, start, end, direction) ->
